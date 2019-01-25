@@ -1,8 +1,39 @@
 library(shiny)
 
 shinyServer(function(session, input, output) {
+
+    output$binomial_dist__plot <- renderPlot({
+
+        x <- 0:input$binomial_dist__num_observations
+        y <- dbinom(x,
+                    size=input$binomial_dist__num_observations,
+                    prob=input$binomial_dist__probability)
+
+        expected_value <- input$binomial_dist__num_observations * input$binomial_dist__probability
+        dataset <- data.frame(x, y)
+
+        if(input$binomial_dist__zoom) {
+
+            threshold <- 0.0001
+            dataset <- dataset %>% filter(y > threshold & y < (1 - threshold))
+
+        }
+
+        dataset %>%
+            ggplot(aes(x, y)) +
+            geom_bar(stat='identity') +
+            geom_vline(xintercept=expected_value, linetype='dotted', color='red', size=1) +
+            labs(title=paste0("Binomial Distribution (", input$binomial_dist__num_observations, ":", input$binomial_dist__probability, ")"),
+                 subtitle=paste("Expected Value:", round(expected_value, 1)), 
+                 x="Observations",
+                 y="Probability")
+
+    }, height = function() {
+
+        session$clientData$output_binomial_dist__plot_width * 0.66  # set height to % of width
+    })
    
-  output$beta_dist__plot <- renderPlot({
+    output$beta_dist__plot <- renderPlot({
 
         req(input$beta_dist__prior_successes)
         req(input$beta_dist__prior_trials)
@@ -16,13 +47,12 @@ shinyServer(function(session, input, output) {
         new_beta <- prior_beta + (input$beta_dist__additional_trials - input$beta_dist__additional_successes)
 
         distros <- data_frame(a = c(prior_alpha, new_alpha),
-                   b = c(prior_beta, new_beta)) %>%
+                              b = c(prior_beta, new_beta)) %>%
           group_by(a, b) %>%
           do(data_frame(x = seq(0, 1, .001), y = dbeta(x, .$a, .$b))) %>%
           mutate(Parameters = paste0("\u03B1 = ", a, ", \u03B2 = ", b)) %>%
           ungroup() %>%
           mutate(Parameters = factor(Parameters, levels = unique(Parameters)))
-
 
         min_x <- min(c(qbeta(0.01, prior_alpha, prior_beta), qbeta(0.01, new_alpha, new_beta)))
         max_x <- max(c(qbeta(0.99, prior_alpha, prior_beta), qbeta(0.99, new_alpha, new_beta)))

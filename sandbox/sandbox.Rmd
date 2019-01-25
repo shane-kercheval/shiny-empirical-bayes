@@ -65,6 +65,61 @@ ggplot(data=distros, aes(x, y, color = Parameters)) +
                          "\nNew Conversion Rate (black):", round(new_conversion_rate, 3)))
 ```
 
+```{r}
+binomial_dist__num_observations <- 1000
+binomial_dist__probability <- 0.3
+
+x <- 0:binomial_dist__num_observations
+y <- dbinom(x,
+            size=binomial_dist__num_observations,
+            prob=binomial_dist__probability)
+
+expected_value <- binomial_dist__num_observations * binomial_dist__probability
+
+threshold <- 0.0001
+data.frame(x, y) %>%
+    filter(y > threshold & y < (1 - threshold)) %>%
+    ggplot(aes(x, y)) +
+    geom_bar(stat = 'identity') +
+    geom_vline(xintercept=expected_value, linetype='dotted', color='red', size=1) +
+    labs(title=paste0("Binomial Distribution (", binomial_dist__num_observations, ":", binomial_dist__probability, ")"),
+         subtitle = paste("Expected Value:", round(binomial_dist__num_observations * binomial_dist__probability, 1)), 
+         x="Observations",
+         y="Probability")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
