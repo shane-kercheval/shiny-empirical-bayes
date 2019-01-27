@@ -90,10 +90,118 @@ data.frame(x, y) %>%
 
 
 
+```{r}
+beta_dist__prior_successes <- 82
+beta_dist__prior_trials <- 301
+    
+beta_dist__additional_successes_a <- 80
+beta_dist__additional_trials_a <- 300
+
+beta_dist__additional_successes_b <- 100
+beta_dist__additional_trials_b <- 300
+
+prior_alpha <- beta_dist__prior_successes
+prior_beta <- beta_dist__prior_trials - beta_dist__prior_successes
+
+new_alpha_a <- prior_alpha + beta_dist__additional_successes_a
+new_beta_a <- prior_beta + (beta_dist__additional_trials_a - beta_dist__additional_successes_a)
+
+new_alpha_b <- prior_alpha + beta_dist__additional_successes_b
+new_beta_b <- prior_beta + (beta_dist__additional_trials_b - beta_dist__additional_successes_b)
 
 
+alpha_vector <- c(prior_alpha, new_alpha_a, new_alpha_b)
+beta_vector <- c(prior_beta, new_beta_a, new_beta_b)
+distros <- data_frame(alpha = alpha_vector,
+                      beta = beta_vector,
+                      group = c("Prior", "A", "B")) %>%
+    group_by(alpha, beta, group) %>%
+    do(data_frame(x = seq(0, 1, .001))) %>%
+    ungroup() %>%
+    mutate(y = dbeta(x, alpha, beta),
+           Parameters = factor(paste0(group, ": alpha= ", alpha, ", beta= ", beta)))
+
+x_min <- min(qbeta(0.001, alpha_vector, beta_vector))
+x_max <- max(qbeta(0.999, alpha_vector, beta_vector))
+
+x_axis_spread <- 1#beta_dist__min_max[2] - beta_dist__min_max[1]
+x_axis_break_steps <- 0.05
+
+if(x_axis_spread <= 0.15) {
+
+    x_axis_break_steps <- 0.01
+
+} else if(x_axis_spread <= 0.5) {
+
+    x_axis_break_steps <- 0.02
+}
+
+library(scales)
+custom_colors <- rev(hue_pal()(3))
+
+beta_dist__show_prior_distribution <- TRUE
+if(!beta_dist__show_prior_distribution) {
+
+    distros <- distros %>%
+        filter(!str_detect(Parameters, "Prior"))
+    
+    custom_colors <- custom_colors[1:2]
+}
+
+a_cred_low <- qbeta(0.025, new_alpha_a, new_beta_a)
+a_cred_high <- qbeta(0.975, new_alpha_a, new_beta_a)
+
+b_cred_low <- qbeta(0.025, new_alpha_b, new_beta_b)
+b_cred_high <- qbeta(0.975, new_alpha_b, new_beta_b)
+
+a_cr_simulation <- rbeta(1e6, new_alpha_a, new_beta_a)
+b_cr_simulation <- rbeta(1e6, new_alpha_b, new_beta_b)
+percent_of_time_b_wins <- mean(b_cr_simulation > a_cr_simulation)
+
+ggplot(data=distros, aes(x, y, color = Parameters)) +
+    geom_line() +
+    geom_area(aes(fill=Parameters, group=Parameters), alpha=0.3, position = 'identity') +
+    scale_x_continuous(breaks = seq(0, 1, x_axis_break_steps)) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+    geom_errorbarh(aes(xmin = a_cred_low, xmax = a_cred_high, y = -1), height = 2, color = custom_colors[1], alpha=0.3) + 
+    geom_errorbarh(aes(xmin = b_cred_low, xmax = b_cred_high, y = -2), height = 2, color = custom_colors[2], alpha=0.3) + 
+    coord_cartesian(xlim=c(x_min, x_max)) +
+    labs(title='Prior (red) and updated (blue) probability distributions',
+         x="Conversion Rates",
+         y="Density of beta",
+         caption=paste0("With the given probability distributions, if we do 1 million simulations,\nB is better than A ",
+                        round(percent_of_time_b_wins * 100, 1), "% of the time")) +
+    scale_fill_manual(values=custom_colors) +
+    scale_color_manual(values=custom_colors)
 
 
+alpha_vector
+
+beta_vector
+
+data.frame(distribution=c())
+    
+```
+
+```{r}
+sim_of_sims <- map_dbl(1:100, ~ {
+    
+    a_cr_simulation <- rbeta(1e6, new_alpha_a, new_beta_a)
+    b_cr_simulation <- rbeta(1e6, new_alpha_b, new_beta_b)
+    sim_1 <- mean(b_cr_simulation > a_cr_simulation)
+    sim_1
+    
+    a_cr_simulation <- rbeta(1e5, new_alpha_a, new_beta_a)
+    b_cr_simulation <- rbeta(1e5, new_alpha_b, new_beta_b)
+    sim_2 <- mean(b_cr_simulation > a_cr_simulation)
+    sim_2
+    
+    
+    abs(sim_1 - sim_2)
+})
+
+max(sim_of_sims)
+```
 
 
 

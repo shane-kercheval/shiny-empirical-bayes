@@ -45,10 +45,13 @@ shinyUI(fluidPage(theme="custom.css",
             column(3,
                 class='column-input-control-style',
                 bsCollapse(id='beta_dist__bscollapse', 
-                           open=c('Prior Conversions', 'Additional Conversions'), 
+                           open=c("Prior Conversions",
+                                  "Additional Conversions A",
+                                  "Additional Conversions B",
+                                  "Graph Options"), 
                            multiple=TRUE,
                     bsCollapsePanel(
-                        'Prior Conversions',
+                        "Prior Conversions",
                         numericInput(inputId='beta_dist__prior_successes',
                                     label="Previous Attemps:",
                                     value = 81),
@@ -58,19 +61,52 @@ shinyUI(fluidPage(theme="custom.css",
                         style='default'
                     ),
                     bsCollapsePanel(
-                        'Additional Conversions',
-                        numericInput(inputId='beta_dist__additional_successes',
+                        "Additional Conversions A",
+                        numericInput(inputId='beta_dist__additional_successes_a',
                                     label="New Attemps:",
-                                    value = 100),
-                        numericInput(inputId='beta_dist__additional_trials',
+                                    value = 40),
+                        numericInput(inputId='beta_dist__additional_trials_a',
                                     label="New Trials:",
-                                    value = 300),
+                                    value = 150),
+                        style='default'
+                    ),
+                    bsCollapsePanel(
+                        "Additional Conversions B",
+                        numericInput(inputId='beta_dist__additional_successes_b',
+                                    label="New Attemps:",
+                                    value = 50),
+                        numericInput(inputId='beta_dist__additional_trials_b',
+                                    label="New Trials:",
+                                    value = 150),
+                        style='default'
+                    ),
+                    bsCollapsePanel(
+                        "Graph Options",
+                        # sliderInput(inputId='beta_dist__min_max', 
+                        #             label="X-Axis Min/Max",
+                        #             min=0,
+                        #             max=1,
+                        #             value=c(0, 1),
+                        #             step = 0.01),
+                        tags$div(class='bold_checkbox_input',
+                                 checkboxInput(inputId='beta_dist__simulate',
+                                               label="Simulate",
+                                               value=TRUE)
+                        ),
+                        tags$div(class='bold_checkbox_input',
+                                 checkboxInput(inputId='beta_dist__show_prior_distribution',
+                                               label="Show Prior Distribution",
+                                               value=TRUE)
+                        ),
                         style='default'
                     )
                 )
             ),
             column(9,
-                plotOutput(outputId='beta_dist__plot')
+                actionButton("beta_dist__run", "Run"),
+                tags$br(),
+                plotOutput(outputId='beta_dist__plot'),
+                tableOutput(outputId='beta_dist__table')
                 #verbatimTextOutput(outputId='beta_dist__ggplot_messages')
             )
         ),
