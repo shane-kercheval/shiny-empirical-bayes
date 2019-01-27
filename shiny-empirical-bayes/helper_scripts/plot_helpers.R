@@ -57,15 +57,6 @@ beta_dist__create_plot__observe_event <- function(session, input, beta_dist_valu
 
             alpha_vector <- c(new_alpha_a, new_alpha_b, prior_alpha)
             beta_vector <-  c(new_beta_a, new_beta_b, prior_beta)
-            distro_names <- c("A", "B", "Prior")
-            distros <- data_frame(alpha = alpha_vector,
-                                  beta = beta_vector,
-                                  group = distro_names) %>%
-                group_by(alpha, beta, group) %>%
-                do(data_frame(x = seq(0, 1, .001))) %>%
-                ungroup() %>%
-                mutate(y = dbeta(x, alpha, beta),
-                       Parameters = factor(paste0(group, ": alpha= ", alpha, ", beta= ", beta)))
 
             if(input$beta_dist__show_prior_distribution) {
 
@@ -78,10 +69,35 @@ beta_dist__create_plot__observe_event <- function(session, input, beta_dist_valu
                 x_max <- max(qbeta(0.999, alpha_vector[1:2], beta_vector[1:2]))
             }
 
+
             x_axis_spread <- x_max - x_min
+
+            # depending on the where we want to graph and how spread out the values are, we will want to get more/less granualar with our plot
+
+            distro_names <- c("A", "B", "Prior")
+            distros <- data_frame(alpha = alpha_vector,
+                                  beta = beta_vector,
+                                  group = distro_names) %>%
+                group_by(alpha, beta, group) %>%
+                do(data_frame(x = seq(x_min, x_max, x_axis_spread / 1000))) %>%
+                ungroup() %>%
+                mutate(y = dbeta(x, alpha, beta),
+                       Parameters = factor(paste0(group, ": alpha= ", alpha, ", beta= ", beta)))
+
+
+
             x_axis_break_steps <- 0.05
 
-            if(x_axis_spread <= 0.15) {
+
+            if(x_axis_spread <= 0.02) {
+
+                x_axis_break_steps <- 0.001
+
+            } else if(x_axis_spread <= 0.05) {
+
+                x_axis_break_steps <- 0.005
+
+            } else if(x_axis_spread <= 0.15) {
 
                 x_axis_break_steps <- 0.01
 
@@ -117,11 +133,12 @@ beta_dist__create_plot__observe_event <- function(session, input, beta_dist_valu
                                     round(percent_of_time_b_wins * 100, 1), "% of the time")
             }
 
+            max_distros_20th <- max(distros$y) / 20
             beta_dist_values$plot <- ggplot(data=distros, aes(x, y, color = Parameters)) +
                 geom_line() +
                 geom_area(aes(fill=Parameters, group=Parameters), alpha=0.3, position = 'identity') +
-                geom_errorbarh(aes(xmin = a_cred_low, xmax = a_cred_high, y = -1), height = 2, color = custom_colors[1], alpha=0.3) + 
-                geom_errorbarh(aes(xmin = b_cred_low, xmax = b_cred_high, y = -2), height = 2, color = custom_colors[2], alpha=0.3) + 
+                geom_errorbarh(aes(xmin = a_cred_low, xmax = a_cred_high, y = max_distros_20th * -1), height = max_distros_20th * 0.75, color = custom_colors[1], alpha=0.3) + 
+                geom_errorbarh(aes(xmin = b_cred_low, xmax = b_cred_high, y = max_distros_20th * -2), height = max_distros_20th * 0.75, color = custom_colors[2], alpha=0.3) + 
                 scale_x_continuous(breaks = seq(0, 1, x_axis_break_steps)) +
                 theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
                 coord_cartesian(xlim=c(x_min, x_max)) +
@@ -172,5 +189,5 @@ beta_dist__table__renderTable <- function(input, beta_dist_values) {
 
         beta_dist_values$dataframe
 
-    }, digits=3)
+    }, digits=4)
 }
